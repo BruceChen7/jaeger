@@ -27,8 +27,11 @@ import (
 
 // Agent is a composition of all services / components
 type Agent struct {
+    // 几个端口的处理器
 	processors []processors.Processor
+    // httpSever
 	httpServer *http.Server
+    // 设置http地址
 	httpAddr   atomic.Value // string, set once agent starts listening
 	logger     *zap.Logger
 	closer     io.Closer
@@ -58,19 +61,24 @@ func (a *Agent) GetServer() *http.Server {
 // It returns an error when it's immediately apparent on startup, but
 // any errors happening after starting the servers are only logged.
 func (a *Agent) Run() error {
+    // 监听http端口
 	listener, err := net.Listen("tcp", a.httpServer.Addr)
 	if err != nil {
 		return err
 	}
+    // 存储地址
 	a.httpAddr.Store(listener.Addr().String())
 	a.closer = listener
 	go func() {
 		a.logger.Info("Starting jaeger-agent HTTP server", zap.Int("http-port", listener.Addr().(*net.TCPAddr).Port))
+        // 启动http server
 		if err := a.httpServer.Serve(listener); err != nil {
 			a.logger.Error("http server failure", zap.Error(err))
 		}
 		a.logger.Info("agent's http server exiting")
 	}()
+
+    // 启动3个goroutine
 	for _, processor := range a.processors {
 		go processor.Serve()
 	}

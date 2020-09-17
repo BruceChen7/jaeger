@@ -32,6 +32,7 @@ type collectorProxy struct {
 
 // NewConfigManager implements Manager by proxying the requests to collector.
 func NewConfigManager(svc string, channel *tchannel.Channel) configmanager.ClientConfigManager {
+    // thrift Client创建
 	thriftClient := thrift.NewClient(channel, svc, nil)
 	res := &collectorProxy{
 		samplingClient: sampling.NewTChanSamplingManagerClient(thriftClient),

@@ -59,8 +59,10 @@ func NewTBufferedServer(
 	maxPacketSize int,
 	mFactory metrics.Factory,
 ) (*TBufferedServer, error) {
+    // 数据队列
 	dataChan := make(chan *ReadBuf, maxQueueSize)
 
+    // 对象池初始化
 	var readBufPool = &sync.Pool{
 		New: func() interface{} {
 			return &ReadBuf{bytes: make([]byte, maxPacketSize)}
@@ -78,9 +80,12 @@ func NewTBufferedServer(
 }
 
 // Serve initiates the readers and starts serving traffic
+// 从客户端接受数据到队列中
 func (s *TBufferedServer) Serve() {
+    // 正在服务
 	atomic.StoreUint32(&s.serving, 1)
 	for s.IsServing() {
+        // 获取buffer
 		readBuf := s.readBufPool.Get().(*ReadBuf)
 		n, err := s.transport.Read(readBuf.bytes)
 		if err == nil {
@@ -88,6 +93,7 @@ func (s *TBufferedServer) Serve() {
 			s.metrics.PacketSize.Update(int64(n))
 			select {
 			case s.dataChan <- readBuf:
+                // 增加的packet
 				s.metrics.PacketsProcessed.Inc(1)
 				s.updateQueueSize(1)
 			default:

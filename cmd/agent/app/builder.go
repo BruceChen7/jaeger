@@ -63,6 +63,7 @@ var (
 )
 
 // CollectorProxy provides access to Reporter and ClientConfigManager
+// 获取所有到reporter
 type CollectorProxy interface {
 	GetReporter() reporter.Reporter
 	GetManager() configmanager.ClientConfigManager
@@ -70,6 +71,7 @@ type CollectorProxy interface {
 
 // Builder Struct to hold configurations
 type Builder struct {
+    // 后端处理协议到处理器
 	Processors []ProcessorConfiguration `yaml:"processors"`
 	HTTPServer HTTPServerConfiguration  `yaml:"httpServer"`
 
@@ -104,24 +106,31 @@ func (b *Builder) WithReporter(r ...reporter.Reporter) *Builder {
 
 // CreateAgent creates the Agent
 func (b *Builder) CreateAgent(primaryProxy CollectorProxy, logger *zap.Logger, mFactory metrics.Factory) (*Agent, error) {
+    // 获取
 	r := b.getReporter(primaryProxy)
+    // processors
 	processors, err := b.getProcessors(r, mFactory, logger)
 	if err != nil {
 		return nil, err
 	}
 	server := b.HTTPServer.getHTTPServer(primaryProxy.GetManager(), mFactory)
+    // 创建agent
 	return NewAgent(processors, server, logger), nil
 }
 
 func (b *Builder) getReporter(primaryProxy CollectorProxy) reporter.Reporter {
+    // 配置中如果reportor如果为0
 	if len(b.reporters) == 0 {
+        // 从proxy中获取
 		return primaryProxy.GetReporter()
 	}
+    //  创建
 	rep := make([]reporter.Reporter, len(b.reporters)+1)
 	rep[0] = primaryProxy.GetReporter()
 	for i, r := range b.reporters {
 		rep[i+1] = r
 	}
+    // 创建多个reportor
 	return reporter.NewMultiReporter(rep...)
 }
 
@@ -180,6 +189,7 @@ func (c *ProcessorConfiguration) GetThriftProcessor(
 }
 
 func (c *ProcessorConfiguration) applyDefaults() {
+    // 默认10个worker
 	c.Workers = defaultInt(c.Workers, defaultServerWorkers)
 }
 
@@ -190,6 +200,7 @@ func (c *ServerConfiguration) applyDefaults() {
 
 // getUDPServer gets a TBufferedServer backed server using the server configuration
 func (c *ServerConfiguration) getUDPServer(mFactory metrics.Factory) (servers.Server, error) {
+    // 使用默认的配置
 	c.applyDefaults()
 
 	if c.HostPort == "" {
@@ -200,6 +211,7 @@ func (c *ServerConfiguration) getUDPServer(mFactory metrics.Factory) (servers.Se
 		return nil, err
 	}
 
+    // 创建一个udp server
 	return servers.NewTBufferedServer(transport, c.QueueSize, c.MaxPacketSize, mFactory)
 }
 

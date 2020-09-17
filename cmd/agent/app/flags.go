@@ -29,6 +29,7 @@ const (
 	httpServerHostPort        = "http-server.host-port"
 )
 
+// 支持数据协议
 var defaultProcessors = []struct {
 	model    Model
 	protocol Protocol
@@ -59,13 +60,17 @@ func (b *Builder) InitFromViper(v *viper.Viper) *Builder {
 	for _, processor := range defaultProcessors {
 		prefix := fmt.Sprintf("processor.%s-%s.", processor.model, processor.protocol)
 		p := &ProcessorConfiguration{Model: processor.model, Protocol: processor.protocol}
+        // 从配置项中worker数量
 		p.Workers = v.GetInt(prefix + suffixWorkers)
+        // 获取queue的大小
 		p.Server.QueueSize = v.GetInt(prefix + suffixServerQueueSize)
 		p.Server.MaxPacketSize = v.GetInt(prefix + suffixServerMaxPacketSize)
+        // 获取server端口号
 		p.Server.HostPort = v.GetString(prefix + suffixServerHostPort)
 		b.Processors = append(b.Processors, *p)
 	}
 
+    // 获取http server的端口号
 	b.HTTPServer.HostPort = v.GetString(httpServerHostPort)
 	return b
 }

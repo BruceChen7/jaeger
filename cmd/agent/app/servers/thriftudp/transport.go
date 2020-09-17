@@ -42,11 +42,13 @@ type TUDPTransport struct {
 // Example:
 // 	trans, err := thriftudp.NewTUDPClientTransport("192.168.1.1:9090", "")
 func NewTUDPClientTransport(destHostPort string, locHostPort string) (*TUDPTransport, error) {
+    // 发送到对方的udp
 	destAddr, err := net.ResolveUDPAddr("udp", destHostPort)
 	if err != nil {
 		return nil, thrift.NewTTransportException(thrift.NOT_OPEN, err.Error())
 	}
 
+    //  本地udp地址
 	var locAddr *net.UDPAddr
 	if locHostPort != "" {
 		locAddr, err = net.ResolveUDPAddr("udp", locHostPort)
@@ -59,6 +61,7 @@ func NewTUDPClientTransport(destHostPort string, locHostPort string) (*TUDPTrans
 }
 
 func createClient(destAddr, locAddr *net.UDPAddr) (*TUDPTransport, error) {
+    // 连接对应的对端udp
 	conn, err := net.DialUDP(destAddr.Network(), locAddr, destAddr)
 	if err != nil {
 		return nil, thrift.NewTTransportException(thrift.NOT_OPEN, err.Error())
@@ -70,6 +73,7 @@ func createClient(destAddr, locAddr *net.UDPAddr) (*TUDPTransport, error) {
 // It will listen for incoming udp packets on the specified host/port
 // Example:
 // 	trans, err := thriftudp.NewTUDPClientTransport("localhost:9001")
+// 创建本地的udp服务
 func NewTUDPServerTransport(hostPort string) (*TUDPTransport, error) {
 	addr, err := net.ResolveUDPAddr("udp", hostPort)
 	if err != nil {

@@ -58,7 +58,9 @@ func AddFlags(flags *flag.FlagSet) {
 
 // InitFromViper initializes Builder with properties retrieved from Viper.
 func (b *Builder) InitFromViper(v *viper.Viper) *Builder {
+    // 设置backend
 	b.Backend = v.GetString(metricsBackend)
+    // 设置路由
 	b.HTTPRoute = v.GetString(metricsHTTPRoute)
 	return b
 }
@@ -67,8 +69,10 @@ func (b *Builder) InitFromViper(v *viper.Viper) *Builder {
 // If the metrics backend supports HTTP endpoint for scraping, it is stored in the builder and
 // can be later added by RegisterHandler function.
 func (b *Builder) CreateMetricsFactory(namespace string) (metrics.Factory, error) {
+    //后端是prometheus
 	if b.Backend == "prometheus" {
 		metricsFactory := jprom.New().Namespace(metrics.NSOptions{Name: namespace, Tags: nil})
+        // 创建默认到收集器 
 		b.handler = promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{DisableCompression: true})
 		return metricsFactory, nil
 	}

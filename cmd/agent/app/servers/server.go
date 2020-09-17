@@ -32,6 +32,7 @@ type Server interface {
 // themselves are polled to avoid memory allocations for every new inbound message.
 type ReadBuf struct {
 	bytes []byte
+    // 目前buffer中的字节书
 	n     int
 }
 
@@ -40,11 +41,13 @@ func (r *ReadBuf) GetBytes() []byte {
 	return r.bytes[:r.n]
 }
 
+// 返回buffer中最大数量
 func (r *ReadBuf) Read(p []byte) (int, error) {
 	if r.n == 0 {
 		return 0, io.EOF
 	}
 	n := r.n
+    // 复制到p中
 	copied := copy(p, r.bytes[:n])
 	r.n -= copied
 	return n, nil

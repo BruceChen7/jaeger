@@ -42,25 +42,31 @@ import (
 
 func main() {
 	var signalsChannel = make(chan os.Signal)
+    // 将interrupt，和SIGTERM信号捕捉到signalsChannel
 	signal.Notify(signalsChannel, os.Interrupt, syscall.SIGTERM)
 
+    // 加载配置
 	v := viper.New()
 	var command = &cobra.Command{
 		Use:   "jaeger-agent",
 		Short: "Jaeger agent is a local daemon program which collects tracing data.",
 		Long:  `Jaeger agent is a daemon program that runs on every host and receives tracing data submitted by Jaeger client libraries.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+            // 加载配置文件
 			err := flags.TryLoadConfigFile(v)
 			if err != nil {
 				return err
 			}
 
+            // 从配置中设置log level和心跳检查服务到端口
 			sFlags := new(flags.SharedFlags).InitFromViper(v)
+            // 按照配置创建logger
 			logger, err := sFlags.NewLogger(zap.NewProductionConfig())
 			if err != nil {
 				return err
 			}
 
+            // 从配置中设置worker数量，queuesize，和端口号
 			builder := new(app.Builder).InitFromViper(v)
 			mBldr := new(metrics.Builder).InitFromViper(v)
 
@@ -68,11 +74,15 @@ func main() {
 			if err != nil {
 				logger.Fatal("Could not create metrics", zap.Error(err))
 			}
+            // 设置后端的处理
 			mFactory = mFactory.Namespace(jMetrics.NSOptions{Name: "agent", Tags: nil})
 
 			rOpts := new(reporter.Options).InitFromViper(v)
+            // tChan的设置
 			tChanOpts := new(tchannel.Builder).InitFromViper(v, logger)
+            // grpc的设置
 			grpcOpts := new(grpc.Options).InitFromViper(v)
+            // 创建collector proxy
 			cp, err := createCollectorProxy(rOpts, tChanOpts, grpcOpts, logger, mFactory)
 			if err != nil {
 				logger.Fatal("Could not create collector proxy", zap.Error(err))
@@ -80,11 +90,14 @@ func main() {
 
 			// TODO illustrate discovery service wiring
 
+            // 创建agent
 			agent, err := builder.CreateAgent(cp, logger, mFactory)
 			if err != nil {
+                // wrap住错误
 				return errors.Wrap(err, "Unable to initialize Jaeger Agent")
 			}
 
+            // 注册metrics handler
 			if h := mBldr.Handler(); mFactory != nil && h != nil {
 				logger.Info("Registering metrics handler with HTTP server", zap.String("route", mBldr.HTTPRoute))
 				agent.GetServer().Handler.(*http.ServeMux).Handle(mBldr.HTTPRoute, h)
@@ -94,7 +107,9 @@ func main() {
 			if err := agent.Run(); err != nil {
 				return errors.Wrap(err, "Failed to run the agent")
 			}
+            // 读取信号
 			<-signalsChannel
+            // 关闭
 			logger.Info("Shutting down")
 			if closer, ok := cp.(io.Closer); ok {
 				closer.Close()
@@ -131,6 +146,7 @@ func createCollectorProxy(
 	logger *zap.Logger,
 	mFactory jMetrics.Factory,
 ) (app.CollectorProxy, error) {
+    // 根据上报到类型，来创建proxy
 	switch opts.ReporterType {
 	case reporter.GRPC:
 		grpclog.SetLoggerV2(grpclog.NewLoggerV2(ioutil.Discard, os.Stderr, os.Stderr))
