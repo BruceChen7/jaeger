@@ -45,7 +45,9 @@ func New(
 	peerListMgr *peerlistmgr.PeerListManager,
 	zlogger *zap.Logger,
 ) *Reporter {
+    // 创建thrift client
 	thriftClient := thrift.NewClient(channel, collectorServiceName, nil)
+    // 创建zipkin client
 	zClient := zipkincore.NewTChanZipkinCollectorClient(thriftClient)
 	jClient := jaeger.NewTChanCollectorClient(thriftClient)
 	return &Reporter{

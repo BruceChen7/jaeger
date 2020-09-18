@@ -196,6 +196,7 @@ func startAgent(
 ) {
 	metricsFactory := baseFactory.Namespace(metrics.NSOptions{Name: "agent", Tags: nil})
 
+    // cp是collectorproxy
 	cp, err := createCollectorProxy(cOpts, repOpts, tchanRep, grpcRepOpts, logger, metricsFactory)
 	if err != nil {
 		logger.Fatal("Could not create collector proxy", zap.Error(err))
@@ -225,6 +226,7 @@ func createCollectorProxy(
 		grpcRepOpts.CollectorHostPort = append(grpcRepOpts.CollectorHostPort, fmt.Sprintf("127.0.0.1:%d", cOpts.CollectorGRPCPort))
 		return agentGrpcRep.NewCollectorProxy(grpcRepOpts, mFactory, logger)
 	case agentRep.TCHANNEL:
+        // 设置agent转发到collector的host和port
 		tchanRepOpts.CollectorHostPorts = append(tchanRepOpts.CollectorHostPorts, fmt.Sprintf("127.0.0.1:%d", cOpts.CollectorPort))
 		return agentTchanRep.NewCollectorProxy(tchanRepOpts, mFactory, logger)
 	default:

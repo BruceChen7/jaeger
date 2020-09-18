@@ -148,9 +148,11 @@ func createCollectorProxy(
 ) (app.CollectorProxy, error) {
     // 根据上报到类型，来创建proxy
 	switch opts.ReporterType {
+    // GRPC上报
 	case reporter.GRPC:
 		grpclog.SetLoggerV2(grpclog.NewLoggerV2(ioutil.Discard, os.Stderr, os.Stderr))
 		return grpc.NewCollectorProxy(grpcRepOpts, mFactory, logger)
+    // 通过thrift rpc上报
 	case reporter.TCHANNEL:
 		return tchannel.NewCollectorProxy(tchanRep, mFactory, logger)
 	default:

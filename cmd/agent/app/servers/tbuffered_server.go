@@ -59,7 +59,7 @@ func NewTBufferedServer(
 	maxPacketSize int,
 	mFactory metrics.Factory,
 ) (*TBufferedServer, error) {
-    // 数据队列
+    // buffered channel 数据队列
 	dataChan := make(chan *ReadBuf, maxQueueSize)
 
     // 对象池初始化
@@ -85,13 +85,16 @@ func (s *TBufferedServer) Serve() {
     // 正在服务
 	atomic.StoreUint32(&s.serving, 1)
 	for s.IsServing() {
-        // 获取buffer
+        // 获取readbuffer
 		readBuf := s.readBufPool.Get().(*ReadBuf)
+
+        // 从端口中读取放到readBuf中
 		n, err := s.transport.Read(readBuf.bytes)
 		if err == nil {
 			readBuf.n = n
 			s.metrics.PacketSize.Update(int64(n))
 			select {
+            // 从readufs.dataChan
 			case s.dataChan <- readBuf:
                 // 增加的packet
 				s.metrics.PacketsProcessed.Inc(1)
@@ -100,12 +103,14 @@ func (s *TBufferedServer) Serve() {
 				s.metrics.PacketsDropped.Inc(1)
 			}
 		} else {
+            // 用来上报基本的tbuffer的监控
 			s.metrics.ReadError.Inc(1)
 		}
 	}
 }
 
 func (s *TBufferedServer) updateQueueSize(delta int64) {
+    // 减少处理完大小
 	atomic.AddInt64(&s.queueSize, delta)
 	s.metrics.QueueSize.Update(atomic.LoadInt64(&s.queueSize))
 }
@@ -129,6 +134,7 @@ func (s *TBufferedServer) DataChan() chan *ReadBuf {
 }
 
 // DataRecd is called by the consumers every time they read a data item from DataChan
+// 应答确认
 func (s *TBufferedServer) DataRecd(buf *ReadBuf) {
 	s.updateQueueSize(-1)
 	s.readBufPool.Put(buf)

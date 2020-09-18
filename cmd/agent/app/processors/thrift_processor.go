@@ -61,6 +61,7 @@ func NewThriftProcessor(
 		return nil, fmt.Errorf(
 			"Number of processors must be greater than 0, called with %d", numProcessors)
 	}
+    // 创建对象池
 	var protocolPool = &sync.Pool{
 		New: func() interface{} {
 			trans := &customtransport.TBufferedReadTransport{}
@@ -68,6 +69,7 @@ func NewThriftProcessor(
 		},
 	}
 
+    // 创建数据的processor
 	res := &ThriftProcessor{
 		server:        server,
 		handler:       handler,
@@ -81,11 +83,14 @@ func NewThriftProcessor(
 
 // Serve initiates the readers and starts serving traffic
 func (s *ThriftProcessor) Serve() {
+    // 默认是10个gorointue来处理buffer
 	s.processing.Add(s.numProcessors)
 	for i := 0; i < s.numProcessors; i++ {
 		go s.processBuffer()
 	}
 
+    // server创建的是TBufferedServer
+    // 调用TBufferedServer
 	s.server.Serve()
 }
 
@@ -106,16 +111,22 @@ func (s *ThriftProcessor) Stop() {
 // processBuffer reads data off the channel and puts it into a custom transport for
 // the processor to process
 func (s *ThriftProcessor) processBuffer() {
+    // 从server的Data chanel中来读
 	for readBuf := range s.server.DataChan() {
+        // 获取协议对象
 		protocol := s.protocolPool.Get().(thrift.TProtocol)
 		payload := readBuf.GetBytes()
+
+        // 写下body
 		protocol.Transport().Write(payload)
 		s.logger.Debug("Span(s) received by the agent", zap.Int("bytes-received", len(payload)))
 
+        // 真正开始处理
 		if ok, err := s.handler.Process(protocol, protocol); !ok {
 			s.logger.Error("Processor failed", zap.Error(err))
 			s.metrics.HandlerProcessError.Inc(1)
 		}
+        // 处理完了放回协议对象
 		s.protocolPool.Put(protocol)
 		s.server.DataRecd(readBuf) // acknowledge receipt and release the buffer
 	}

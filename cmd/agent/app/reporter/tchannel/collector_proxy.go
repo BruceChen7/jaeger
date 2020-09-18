@@ -32,10 +32,12 @@ type ProxyBuilder struct {
 
 // NewCollectorProxy creates ProxyBuilder
 func NewCollectorProxy(builder *Builder, mFactory metrics.Factory, logger *zap.Logger) (*ProxyBuilder, error) {
+    // 创建上报client
 	r, err := builder.CreateReporter(logger)
 	if err != nil {
 		return nil, err
 	}
+    // 创建tchannel的metrics
 	tchannelMetrics := mFactory.Namespace(metrics.NSOptions{Name: "", Tags: map[string]string{"protocol": "tchannel"}})
 	return &ProxyBuilder{
 		tchanRep: r,

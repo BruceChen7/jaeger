@@ -99,15 +99,18 @@ func (p *AgentProcessor) ProcessorMap() map[string]thrift.TProcessorFunction {
 func NewAgentProcessor(handler Agent) *AgentProcessor {
 
 	self6 := &AgentProcessor{handler: handler, processorMap: make(map[string]thrift.TProcessorFunction)}
+    // emitBatch来处理
 	self6.processorMap["emitBatch"] = &agentProcessorEmitBatch{handler: handler}
 	return self6
 }
 
 func (p *AgentProcessor) Process(iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+    //
 	name, _, seqId, err := iprot.ReadMessageBegin()
 	if err != nil {
 		return false, err
 	}
+    // 根据消息名字来处理
 	if processor, ok := p.GetProcessorFunction(name); ok {
 		return processor.Process(seqId, iprot, oprot)
 	}

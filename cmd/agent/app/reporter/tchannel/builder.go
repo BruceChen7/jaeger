@@ -98,7 +98,9 @@ func (b *Builder) enableDiscovery(channel *tchannel.Channel, logger *zap.Logger)
 
 	subCh := channel.GetSubChannel(b.CollectorServiceName, tchannel.Isolated)
 	peers := subCh.Peers()
+    // 对端列表
 	return peerlistmgr.New(peers, b.discoverer, b.notifier,
+        // 设置选项
 		peerlistmgr.Options.MinPeers(defaultInt(b.DiscoveryMinPeers, defaultMinPeers)),
 		peerlistmgr.Options.Logger(logger),
 		peerlistmgr.Options.ConnCheckTimeout(b.ConnCheckTimeout),
@@ -117,8 +119,11 @@ func (b *Builder) CreateReporter(logger *zap.Logger) (*Reporter, error) {
 	}
 
 	// Use static collectors if specified.
+    // 如果有配置collector，那么直接使用对应的ip:port
 	if len(b.CollectorHostPorts) != 0 {
+        // 进行类型转换
 		d := discovery.FixedDiscoverer(b.CollectorHostPorts)
+        // listen对应服务的ip地址
 		b = b.WithDiscoverer(d).WithDiscoveryNotifier(&discovery.Dispatcher{})
 	}
 
@@ -126,6 +131,7 @@ func (b *Builder) CreateReporter(logger *zap.Logger) (*Reporter, error) {
 		b.ReportTimeout = defaultReportTimeout
 	}
 
+    // 开启
 	peerListMgr, err := b.enableDiscovery(b.channel, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot enable service discovery")

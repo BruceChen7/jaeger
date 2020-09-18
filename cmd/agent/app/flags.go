@@ -29,7 +29,7 @@ const (
 	httpServerHostPort        = "http-server.host-port"
 )
 
-// 支持数据协议
+// 支持数据协议处理器
 var defaultProcessors = []struct {
 	model    Model
 	protocol Protocol

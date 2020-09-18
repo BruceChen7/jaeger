@@ -83,6 +83,7 @@ type ProcessorConfiguration struct {
 	Workers  int                 `yaml:"workers"`
 	Model    Model               `yaml:"model"`
 	Protocol Protocol            `yaml:"protocol"`
+    // server的配置
 	Server   ServerConfiguration `yaml:"server"`
 }
 
@@ -106,7 +107,7 @@ func (b *Builder) WithReporter(r ...reporter.Reporter) *Builder {
 
 // CreateAgent creates the Agent
 func (b *Builder) CreateAgent(primaryProxy CollectorProxy, logger *zap.Logger, mFactory metrics.Factory) (*Agent, error) {
-    // 获取
+    // 获取上报者
 	r := b.getReporter(primaryProxy)
     // processors
 	processors, err := b.getProcessors(r, mFactory, logger)
@@ -143,6 +144,7 @@ func (b *Builder) getProcessors(rep reporter.Reporter, mFactory metrics.Factory,
 		}
 		var handler processors.AgentProcessor
 		switch cfg.Model {
+         // 根据数据模型，创建不同的handler
 		case jaegerModel:
 			handler = jaegerThrift.NewAgentProcessor(rep)
 		case zipkinModel:
@@ -150,6 +152,7 @@ func (b *Builder) getProcessors(rep reporter.Reporter, mFactory metrics.Factory,
 		default:
 			return nil, fmt.Errorf("cannot find agent processor for data model %v", cfg.Model)
 		}
+        // 上报的metrics
 		metrics := mFactory.Namespace(metrics.NSOptions{Name: "", Tags: map[string]string{
 			"protocol": string(cfg.Protocol),
 			"model":    string(cfg.Model),
@@ -178,13 +181,16 @@ func (c *ProcessorConfiguration) GetThriftProcessor(
 	handler processors.AgentProcessor,
 	logger *zap.Logger,
 ) (processors.Processor, error) {
+    // 配置works
 	c.applyDefaults()
 
+    // 根据Server的配置创建一个udp server
 	server, err := c.Server.getUDPServer(mFactory)
 	if err != nil {
 		return nil, err
 	}
 
+    // 创建thrift数据处理器
 	return processors.NewThriftProcessor(server, c.Workers, mFactory, factory, handler, logger)
 }
 
@@ -206,6 +212,7 @@ func (c *ServerConfiguration) getUDPServer(mFactory metrics.Factory) (servers.Se
 	if c.HostPort == "" {
 		return nil, fmt.Errorf("no host:port provided for udp server: %+v", *c)
 	}
+    // 创建udp端口
 	transport, err := thriftudp.NewTUDPServerTransport(c.HostPort)
 	if err != nil {
 		return nil, err

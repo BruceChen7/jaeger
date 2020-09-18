@@ -27,7 +27,7 @@ import (
 
 // Agent is a composition of all services / components
 type Agent struct {
-    // 几个端口的处理器
+    // 几个端口的处理器，这里实际上ThriftProcessor
 	processors []processors.Processor
     // httpSever
 	httpServer *http.Server
@@ -44,6 +44,7 @@ func NewAgent(
 	logger *zap.Logger,
 ) *Agent {
 	a := &Agent{
+        // 多个thrift processor
 		processors: processors,
 		httpServer: httpServer,
 		logger:     logger,
